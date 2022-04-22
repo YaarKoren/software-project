@@ -25,7 +25,7 @@ void input_error();
 int main(int argc, char **argv){
 	int i, N, d, k, max_iter, error;
 	char * input_path, *output_path;
-	double *vector;
+	double *vectors;
 	double ** vectors_array;
 	double *centroids;
     double **centroids_array;
@@ -65,17 +65,24 @@ int main(int argc, char **argv){
 	}
 
 	/*create an N*d matrix to store the vectors*/
-	vector = (double*)calloc(N*d, sizeof(double));
+	vectors = (double*)calloc(N*d, sizeof(double));
 	vectors_array = (double**)calloc(N, sizeof(double *));
 
+	if(vectors == NULL || vectors_array == NULL){
+    	free(vectors);
+    	free(vectors_array);
+    	other_error();
+    }
+
 	for (i = 0 ; i < N ; i++) {
-		vectors_array[i] = vector + i*d;
+		vectors_array[i] = vectors + i*d;
 	}
 
 	/*read from file and store the vectors*/
 	error = read_from_file(ifp, vectors_array, N, d);
 	fclose(ifp);
 	if(error) {
+		free(vectors);
 		free(vectors_array);
 		other_error();
 	}
@@ -88,6 +95,7 @@ int main(int argc, char **argv){
     if(centroids == NULL || centroids_array == NULL){
     	free(centroids);
     	free(centroids_array);
+		free(vectors);
     	free(vectors_array);
     	other_error();
     }
@@ -106,13 +114,13 @@ int main(int argc, char **argv){
 
 	error = write_to_file(output_path, centroids_array, d, k);
 
-	free(vector);
+	free(vectors);
 	free(centroids_array);
 	free(centroids);
 	free(vectors_array);
 
 	if(error){
-		other_error();
+		input_error(); /*after a discussion we decided it is an input error, the file name was not leagal for some reason*/
 	}
 	exit(0);
 }
