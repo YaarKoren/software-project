@@ -88,11 +88,9 @@ def k_means_pp(vectors, centroids, k):
     chosen_indices = [None] * k
 
     # select first centroid randomly from the N vectors
-    rand_index = np.random.choice(indices)
-    centroids[i] = np.copy(vectors[rand_index])  # create copy, to prevent changes in the vectors matrix
-    chosen_indices[i] = rand_index
+    select_random_vector(vectors, centroids, indices, chosen_indices, i)
 
-    # initialize N-size lists to store D values  and probabilty values for each vector
+    # initialize N-size lists to store D values  and probabilty values for each vecto
     D_lst = [None] * N
     P_lst = [None] * N
 
@@ -109,10 +107,8 @@ def k_means_pp(vectors, centroids, k):
 
         i += 1
 
-        # choose the vector randomlly, with the probabilty calculated
-        rand_index = np.random.choice(indices, p = P_lst)
-        centroids[i] = np.copy(vectors[rand_index])  # create copy, to prevent changes in the vectors matrix
-        chosen_indices[i] = rand_index
+        # choose the vector randomlly, vector in index [i] has P_lst[i] probablity to be chosen
+        select_random_vector(vectors, centroids, indices, chosen_indices, i, probablity = P_lst)
 
     return chosen_indices
 
@@ -131,6 +127,15 @@ def cal_norm_squared(v1, v2):
     for i in range(len(v1)):
         args_sum += ((v1[i] - v2[i]) ** 2)
     return args_sum
+
+def select_random_vector(vectors, centroids, indices, chosen_indices, i, probablity = None):
+    # select centroid randomly from the N vectors
+    if probablity == None: # each vector has the same probablity to be chosen
+        rand_index = np.random.choice(indices)
+    if probablity != None: # vector in index [i] has probablity[i] probablity to be chosen
+        rand_index = np.random.choice(indices, p = probablity)
+    centroids[i] = np.copy(vectors[rand_index])  # create copy, to prevent changes in the vectors matrix
+    chosen_indices[i] = rand_index
 
 if __name__ == "__main__":
     main(sys.argv[1:])
