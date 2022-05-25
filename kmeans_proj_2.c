@@ -5,13 +5,10 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define MAX_ITER_DEFAULT 200
+#define MAX_ITER_DEFAULT 300
 
 int get_closest_cluster_index(double *v, double **centroids, int d, int K);
 void assign_vector_to_cluster (double* v, double **centroids, double ***clusters, int *cluster_size, int d, int K);
-int write_to_file(char* path, double **array, int d, int k);
-int get_N(FILE *ifp);
-int get_d(FILE *ifp);
 void update_centroid_value(double* centroid ,double ** cluster, int cluster_size, int d);
 int update_centroids_and_check_distance_difference(double **centroids, double*** clusters, int* cluster_sizes, int k, int d, double eps);
 double cal_norm (double *v1, double *v2, int d);
@@ -154,15 +151,15 @@ static PyObject *fit(PyObject *self, PyObject *args) {
         PyList_SET_ITEM(list, i, item);
     }
 
-    	if(error == 1){
-    		free(centroids);
-          	free(centroids_array);
-          	other_error();
-          }
-
-    	printf("exiting c script\n");
+    if(error == 1){
     	free(centroids);
-    	free(centroids_array);
+        free(centroids_array);
+        other_error();
+    }
+
+    printf("exiting c script\n");
+    free(centroids);
+    free(centroids_array);
 
     return list;
 }
@@ -183,13 +180,7 @@ int K_means(double **vectors_array, double **centroids_array, int N, int d, int 
 	 double **clusters;
 	 double ***clusters_array;
 	 int *clusters_sizes;
-    /*store the k first vectors as the k centroids*/
-     for  (i = 0; i < K; i++) { /* run K times - number of centroids*/
-        for (j = 0; j < d; j++) { /* run d times - number of coordinates*/
-            centroids_array[i][j] = vectors_array[i][j];
-        }
-     }
-
+    
     /*allocate space for clusters. each cluster is an array of pointers
     (that is, clusters_array in the [i][j] contains pointer to a vector)*/
     clusters = (double **)calloc(K, N*(sizeof(double *)));
@@ -275,66 +266,6 @@ void other_error() {
 	exit(1);
 }
 
-/*get number of vectors*/
-int get_N(FILE *ifp) {
-	int count;
-	char c;
-
-	count = 0;
-	for (c = fgetc(ifp); c != EOF; c = fgetc(ifp))
-		if (c == '\n') /*newline*/
-			count++;
-
-	/*last line is always empty, but in case of 4 lines there will be exactly 4 '\n's*/
-	return count;
-
-}
-
-/*get dimension (number of coordinates per vector)*/
-int get_d(FILE *ifp) {
-	int count;
-	char c;
-
-	count = 0;
-	while  ( (c = fgetc(ifp) ) != '\n') {
-		if (c == ',')
-			count++;
-	}
-
-	count++; /*because the line ends with "\n" not ","*/
-	return count;
-
-}
-
-
-int read_from_file(FILE *ifp, double **vectors, int N, int d) {
-	int i, j;
-	char c;
-	char *start_of_str_coor, *str_coor;
-	double coor;
-
-	/*store the vectors*/
-	str_coor = (char *)malloc(7 * sizeof(char)); /* 7 becausse longest num i.e.: "-7.8602"*/
-	if (str_coor == NULL){
-		free(str_coor);
-		return 1;
-	}
-	for  (i = 0; i < N; i++) { /* run N times - number of vectors = number of lines (minus the empty one)*/
-		for (j = 0; j < d; j++) { /* run d times - number of coordinates = number of numbers in a line*/
-			start_of_str_coor = str_coor;
-			while ( (c=fgetc(ifp)) != ',' && c != '\n') { /*collect the chars of the coordinate*/
-				*str_coor = (char)c;
-				str_coor++;
-			}
-			coor = strtod(start_of_str_coor, NULL);
-			vectors[i][j] = coor;
-			str_coor = start_of_str_coor;
-		}
-
-	}
-	free(str_coor);
-	return 0;
-}
 
 
 int get_closest_cluster_index(double *v, double **centroids, int d, int K) {
@@ -425,26 +356,3 @@ int update_centroids_and_check_distance_difference(double **centroids, double***
 	return flag;
 }
 
-int write_to_file(char* path, double **array, int d, int k){
-	FILE * of;
-	int i, j;
-
-	of = fopen(path,"w");
-	if (of == NULL){
-			return 1;
-	}
-
-	for(i=0;i<k;i++){
-		for(j=0;j<d;j++){
-			if(j==d-1){
-				fprintf(of,"%.4f", array[i][j]);
-			} else {
-				fprintf(of,"%.4f,", array[i][j]);
-			}
-
-		}
-		fprintf(of,"\n");
-	}
-	fclose(of);
-	return 0;
-}
