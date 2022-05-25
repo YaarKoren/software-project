@@ -33,10 +33,12 @@ def main(args):
         vectors.append(vectors_dict_1[index_key] + vectors_dict_2[index_key])
         indexes.append(index_key)
     # usable from here: vectors = [[]], k = int, max_iter = int, eps
-    centroids = [[0.0]*len(vectors[0]) for i in range(k)]
+    
+    d = len(vectors[0])
+    centroids = np.zeros((k, d))
 
     res_indices = k_means_pp(vectors, centroids, k)
-    result_centroids = mykmeanssp.fit(vectors, centroids, len(vectors), len(centroids[0]), k, max_iter, eps)
+    result_centroids = mykmeanssp.fit(vectors, centroids, len(vectors), d, k, max_iter, eps)
     print(res_indices, sep=", ")
 
     # print the k final centoris
