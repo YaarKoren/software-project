@@ -5,16 +5,15 @@
 #include <stdlib.h>
 #include <math.h>
 
-int get_closest_cluster_index(double *v, double **centroids, int d, int K);
-void assign_vector_to_cluster (double* v, double **centroids, double ***clusters, int *cluster_size, int d, int K);
-void update_centroid_value(double* centroid ,double ** cluster, int cluster_size, int d);
-int update_centroids_and_check_distance_difference(double **centroids, double*** clusters, int* cluster_sizes, int k, int d, double eps);
-double cal_norm (double *v1, double *v2, int d);
-int get_closest_cluster_index(double *v, double **centroids, int d, int K);
-void assign_vector_to_cluster (double* v, double **centroids, double ***clusters, int *cluster_size, int d, int K);
-int K_means(double **vectors_array, double **centroids_array, int N, int d, int K, int max_iter, double eps);
-void other_error();
-void input_error();
+static int get_closest_cluster_index(double *v, double **centroids, int d, int K);
+static void assign_vector_to_cluster (double* v, double **centroids, double ***clusters, int *cluster_size, int d, int K);
+static void update_centroid_value(double* centroid ,double ** cluster, int cluster_size, int d);
+static int update_centroids_and_check_distance_difference(double **centroids, double*** clusters, int* cluster_sizes, int k, int d, double eps);
+static double cal_norm (double *v1, double *v2, int d);
+static int get_closest_cluster_index(double *v, double **centroids, int d, int K);
+static void assign_vector_to_cluster (double* v, double **centroids, double ***clusters, int *cluster_size, int d, int K);
+static int K_means(double **vectors_array, double **centroids_array, int N, int d, int K, int max_iter, double eps);
+static void other_error();
 static PyObject *fit(PyObject *self, PyObject *args);
 
 
@@ -42,7 +41,7 @@ static PyObject *fit(PyObject *self, PyObject *args) {
 
     int i, j;
     PyObject *item;
-    PyObject * list;
+    PyObject *list;
 
     printf("running c code!\n");
 
@@ -90,20 +89,22 @@ static PyObject *fit(PyObject *self, PyObject *args) {
        printf("Translating vectors\n");
 
        for (i = 0; i < N; i++) {
+    	   list = PyList_GetItem(vectors_obj, i);
     	   	for (j = 0; j < d; j++) {
-           		item = PyList_GetItem(vectors_obj, i);
-           		if (!PyFloat_Check(item)){
-        	 	  vectors_array[i][j] = 0.0; /* or error? */
-		  	 	}
-           		vectors_array[i][j] = PyFloat_AsDouble(item);
-       		}
-    	}
+    	   		item = PyList_GetItem(list, j);
+    	   		if (!PyFloat_Check(item)){		   
+    	   			vectors_array[i][j] = 0.0; /* or error? */
+				   }
+    	   		vectors_array[i][j] = PyFloat_AsDouble(item);
+       }
+    }
 
        printf("translating centroids la la la\n");
 
        for (i = 0; i < k; i++) {
+		    list = PyList_GetItem(centroids_obj, i);
      	   	for (j = 0; j < d; j++) {
-            	item = PyList_GetItem(centroids_obj, i);
+            	item = PyList_GetItem(list, j);
             	if (!PyFloat_Check(item)){
 					centroids_array[i][j] = 0.0; /* or error? */
 				}  	
@@ -115,8 +116,8 @@ static PyObject *fit(PyObject *self, PyObject *args) {
 
     error = K_means(vectors_array, centroids_array, N, d, k, max_iter, eps);
 
-    printf("done! setting the values.\n");
-    printf("error is %d", error);
+    printf("done with kmeans\n");
+    printf("error is %d\n", error);
 
     free(vectors);
     free(vectors_array);
@@ -127,12 +128,16 @@ static PyObject *fit(PyObject *self, PyObject *args) {
     	other_error();
     }
 
+
+	/* translating the double** centroids array to a python list [[]] */
     list = PyList_New(k);
     if(list == NULL) {
-    	free(centroids);
+    	free(list);
+		free(centroids);
     	free(centroids_array);
-        other_error();
+        other_error(); 
     }
+
     printf("created empty list of size k\n");
 
     for(i = 0; i < k; i++) {
@@ -150,9 +155,10 @@ static PyObject *fit(PyObject *self, PyObject *args) {
     }
 
     if(error == 1){
-    	free(centroids);
+		free (list);
+    	free(centroids); 
         free(centroids_array);
-        other_error();
+        other_error(); 
     }
 
     printf("exiting c script\n");
@@ -172,9 +178,9 @@ PyMODINIT_FUNC PyInit_mykmeanssp(void) {
     return m;
 }
 
-int K_means(double **vectors_array, double **centroids_array, int N, int d, int K, int max_iter, double eps){
+static int K_means(double **vectors_array, double **centroids_array, int N, int d, int K, int max_iter, double eps){
 
-	int i, j, iteration_number, flag;
+	int i, iteration_number, flag;
 	double **clusters;
 	double ***clusters_array;
 	int *clusters_sizes;
@@ -241,7 +247,7 @@ int K_means(double **vectors_array, double **centroids_array, int N, int d, int 
 
 
 /*calculate Euclidean distance of 2 vectors, v1 and v2, both of dimension d*/
-double cal_norm (double *v1, double *v2, int d) {
+static double cal_norm (double *v1, double *v2, int d) {
 
 	int i;
 	double sum = 0, norm;
@@ -253,20 +259,14 @@ double cal_norm (double *v1, double *v2, int d) {
 	return norm;
 }
 
-void input_error(){
-	printf("Invalid Input!\n");
-	exit(1);
-
-}
-
-void other_error() {
+static void other_error() {
 	printf("An Error Has Occurred\n");
 	exit(1);
 }
 
 
 
-int get_closest_cluster_index(double *v, double **centroids, int d, int K) {
+static int get_closest_cluster_index(double *v, double **centroids, int d, int K) {
 	int i;
 	int closest_cluster_index = -1;
 	double min_distance, distance;
@@ -281,7 +281,7 @@ int get_closest_cluster_index(double *v, double **centroids, int d, int K) {
 }
 
 
-void assign_vector_to_cluster (double* v, double **centroids, double ***clusters, int *cluster_size, int d, int K){
+static void assign_vector_to_cluster (double* v, double **centroids, double ***clusters, int *cluster_size, int d, int K){
 	int cluster_index, new_vector_index;
 
 	/*find the closest cluster*/
@@ -302,7 +302,7 @@ void assign_vector_to_cluster (double* v, double **centroids, double ***clusters
 
 }
 
-void update_centroid_value(double* centroid ,double ** cluster, int cluster_size, int d){
+static void update_centroid_value(double* centroid ,double ** cluster, int cluster_size, int d){
 	int i,j;
 
 	/*initialize the centroid*/
@@ -327,7 +327,7 @@ void update_centroid_value(double* centroid ,double ** cluster, int cluster_size
 
 
 
-int update_centroids_and_check_distance_difference(double **centroids, double*** clusters, int* cluster_sizes, int k, int d, double eps){
+static int update_centroids_and_check_distance_difference(double **centroids, double*** clusters, int* cluster_sizes, int k, int d, double eps){
 	int flag, i, j;
 	double norm;
 	double *temp_vector;
