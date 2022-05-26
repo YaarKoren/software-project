@@ -27,7 +27,7 @@ def main(args):
         invalid_input_error()
     vectors_dict_1 = read_from_file(input_path_1)
     vectors_dict_2 = read_from_file(input_path_2)
-    vectors = [[0.0] * (len(vectors_dict_1[1.0]) + len(vectors_dict_2[1.0])) for i in range(len(vectors_dict_1))]
+    vectors = [[0.0] * (len(vectors_dict_1[0.0]) + len(vectors_dict_2[0.0])) for i in range(len(vectors_dict_1))]
     for index_key in vectors_dict_1:
         vectors[int(index_key)] = vectors_dict_1[index_key] + vectors_dict_2[index_key]
     # usable from here: vectors = [[]], k = int, max_iter = int, eps
