@@ -27,23 +27,30 @@ def main(args):
         invalid_input_error()
     vectors_dict_1 = read_from_file(input_path_1)
     vectors_dict_2 = read_from_file(input_path_2)
-    vectors = []
-    indexes = []
+    vectors = [[0.0] * (len(vectors_dict_1[1.0]) + len(vectors_dict_2[1.0])) for i in range(len(vectors_dict_1))]
     for index_key in vectors_dict_1:
-        vectors.append(vectors_dict_1[index_key] + vectors_dict_2[index_key])
-        indexes.append(index_key)
+        vectors[int(index_key)] = vectors_dict_1[index_key] + vectors_dict_2[index_key]
     # usable from here: vectors = [[]], k = int, max_iter = int, eps
     
     d = len(vectors[0])
     centroids = np.zeros((k, d))
 
     res_indices = k_means_pp(vectors, centroids, k)
-    result_centroids = mykmeanssp.fit(vectors, centroids, len(vectors), d, k, max_iter, eps)
-    print(res_indices, sep=", ")
+    print("res indiced are: ", res_indices)
 
-    # print the k final centoris
+    #make centroids a list, for the c module
+    centroids_lst = centroids.tolist()
+
+    print("python calling to fit func")
+
+    result_centroids = mykmeanssp.fit(vectors, centroids_lst, len(vectors), d, k, max_iter, eps)
+
+    print("back to python")
+    
+    # print the results: the chosen k indices in algorithm 1, and the k final centoris
+    print(*res_indices, sep = ", ")
     for i in range(k):
-        print(result_centroids[i], sep=", ")
+        print(','.join("%0.4f" % x for x in result_centroids[i]))
 
 
 def read_from_file(path):
@@ -108,7 +115,7 @@ def k_means_pp(vectors, centroids, k):
 
         i += 1
 
-        # choose the vector randomlly, vector in index [i] has P_lst[i] probablity to be chosen
+        # choose the vector randomly, vector in index [i] has P_lst[i] probablity to be chosen
         select_random_vector(vectors, centroids, indices, chosen_indices, i, probablity = P_lst)
 
     return chosen_indices
@@ -137,7 +144,9 @@ def select_random_vector(vectors, centroids, indices, chosen_indices, i, probabl
         rand_index = np.random.choice(indices, p = probablity)
     centroids[i] = np.copy(vectors[rand_index])  # create copy, to prevent changes in the vectors matrix
     chosen_indices[i] = rand_index
-
+    print("i is: ", i)
+    print("rand_index is: ", rand_index)
+    print("vector in this index is: ", centroids[i])
 
 if __name__ == "__main__":
     main(sys.argv[1:])
