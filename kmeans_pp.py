@@ -29,13 +29,9 @@ def main(args):
 
     vectors_1 = pd.read_csv(input_path_1, header=None) #make the first row in the data file a regular row in the df, and not columns names
     vectors_2 = pd.read_csv(input_path_2, header=None) 
-    make_df_for_merge(vectors_1)
-    make_df_for_merge(vectors_2)
-    vectors = pd.merge(vectors_1, vectors_2 ,on="index", sort=True)
-    vectors = vectors.set_index("index")
+    vectors = pd.merge(vectors_1, vectors_2 ,on=0, sort=True)
+    vectors = vectors.set_index(0)
     N, d = vectors.shape
-    col_names = generate_col_names_list(d)
-    vectors.columns = col_names
     
     centroids = np.zeros((k, d))
 
@@ -52,20 +48,6 @@ def main(args):
     print(*res_indices_int, sep = ", ")
     for i in range(k):
         print(','.join("%0.4f" % x for x in result_centroids[i]))
-
-
-def generate_col_names_list(col_num, start=0):
-    names_list = []
-    for i in range(start, (col_num+start)):
-        names_list += ["point_"+str(i)]
-    return names_list
-
-
-def make_df_for_merge(df):
-    col_num = df.shape[1] - 1 # columns number, minus 1 because the first column is the index
-    col_names = ["index"] + generate_col_names_list(col_num)   
-    df.columns = col_names
-
 
 def invalid_input_error():
     print("Invalid Input!")
