@@ -1,4 +1,5 @@
 import mykmeanssp
+import pandas as pd
 import numpy as np
 import sys
 np.random.seed(0)
@@ -25,49 +26,45 @@ def main(args):
     if not ((input_path_1.endswith(".txt") or input_path_1.endswith(".csv"))
             and (input_path_2.endswith(".txt") or input_path_2.endswith(".csv"))):
         invalid_input_error()
-    vectors_dict_1 = read_from_file(input_path_1)
-    vectors_dict_2 = read_from_file(input_path_2)
-    vectors = [[0.0] * (len(vectors_dict_1[0.0]) + len(vectors_dict_2[0.0])) for i in range(len(vectors_dict_1))]
-    for index_key in vectors_dict_1:
-        vectors[int(index_key)] = vectors_dict_1[index_key] + vectors_dict_2[index_key]
-    # usable from here: vectors = [[]], k = int, max_iter = int, eps
+
+    vectors_1 = pd.read_csv(input_path_1, header=None) #make the first row in the data file a regular row in the df, and not columns names
+    vectors_2 = pd.read_csv(input_path_2, header=None) 
+    make_df_for_merge(vectors_1)
+    make_df_for_merge(vectors_2)
+    vectors = pd.merge(vectors_1, vectors_2 ,on="index", sort=True)
+    vectors = vectors.set_index("index")
+    N, d = vectors.shape
+    col_names = generate_col_names_list(d)
+    vectors.columns = col_names
     
-    d = len(vectors[0])
     centroids = np.zeros((k, d))
 
     res_indices = k_means_pp(vectors, centroids, k)
-    print("res indiced are: ", res_indices)
+    res_indices_int = [int(i) for i in res_indices]
 
-    #make centroids a list, for the c module
+    #convert centroids and vectors to lists, for the c module
     centroids_lst = centroids.tolist()
+    vectors_lst = vectors.values.tolist()
 
-    print("python calling to fit func")
-
-    result_centroids = mykmeanssp.fit(vectors, centroids_lst, len(vectors), d, k, max_iter, eps)
-
-    print("back to python")
+    result_centroids = mykmeanssp.fit( vectors_lst, centroids_lst, N, d, k, max_iter, eps)
     
     # print the results: the chosen k indices in algorithm 1, and the k final centoris
-    print(*res_indices, sep = ", ")
+    print(*res_indices_int, sep = ", ")
     for i in range(k):
         print(','.join("%0.4f" % x for x in result_centroids[i]))
 
 
-def read_from_file(path):
-    vectors_dict = {}
-    try:
-        lines_in_file = open(path, 'r').readlines()
-    except FileNotFoundError:
-        invalid_input_error()
-    except:
-        general_error()
-    for line in lines_in_file:
-        if not line:
-            continue
-        a = line.split(',')
-        values = [float(strval) for strval in a]
-        vectors_dict[values[0]] = values[1:] # map index to values. Is the num necessarily int? cast to int?
-    return vectors_dict
+def generate_col_names_list(col_num, start=0):
+    names_list = []
+    for i in range(start, (col_num+start)):
+        names_list += ["point_"+str(i)]
+    return names_list
+
+
+def make_df_for_merge(df):
+    col_num = df.shape[1] - 1 # columns number, minus 1 because the first column is the index
+    col_names = ["index"] + generate_col_names_list(col_num)   
+    df.columns = col_names
 
 
 def invalid_input_error():
@@ -82,15 +79,14 @@ def general_error():
 
 
 def k_means_pp(vectors, centroids, k):
-    # vectors - a matrix N x d, of N vectors, each one d coordinates. from the input files
-    # centroids - a matrix k x d, initialized with zeros, to store the k centroids
+    # vectors - a pandas DataFrame N x d, of N vectors, each one d coordinates. from the input files
+    # centroids - a numpy matrix k x d, initialized with zeros, to store the k centroids
     # the function initalize k centroids, out of the N vectors, according to the kmeans++ algotithm
     # the function returns a list of indices of the chosen vectors
 
-    N = len(vectors)
-    d = len(vectors[0])
+    N, d = vectors.shape
     i = 0
-    indices = np.arange(N)  # N vectors: 0,1, ... , N-1
+    indices = vectors.index.to_list()  
 
     # initialize k-size lists to store the chosen vectors indices
     chosen_indices = [None] * k
@@ -104,7 +100,7 @@ def k_means_pp(vectors, centroids, k):
 
     while i < k-1:
         for j in range(N):
-            vector = np.copy(vectors[j])
+            vector = vectors.iloc[j].to_list()
             D_vector = calculate_D(vector, centroids, i)
             D_lst[j] = D_vector
 
@@ -142,11 +138,8 @@ def select_random_vector(vectors, centroids, indices, chosen_indices, i, probabl
         rand_index = np.random.choice(indices)
     if probablity != None: # vector in index [i] has probablity[i] probablity to be chosen
         rand_index = np.random.choice(indices, p = probablity)
-    centroids[i] = np.copy(vectors[rand_index])  # create copy, to prevent changes in the vectors matrix
+    centroids[i] = vectors.loc[rand_index].to_list() 
     chosen_indices[i] = rand_index
-    print("i is: ", i)
-    print("rand_index is: ", rand_index)
-    print("vector in this index is: ", centroids[i])
 
 if __name__ == "__main__":
     main(sys.argv[1:])
