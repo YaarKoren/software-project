@@ -28,13 +28,19 @@ def main(args):
     if not ((input_path_1.endswith(".txt") or input_path_1.endswith(".csv"))
             and (input_path_2.endswith(".txt") or input_path_2.endswith(".csv"))):
         invalid_input_error()
-    vectors = files_to_vectors(input_path_1, input_path_2)
-    print("finished reading from file")
-    print(vectors.shape)
-    N, d = vectors.shape
-    print("N is: ", N)
-    print("d is: ", d)
 
+    vectors_1 = pd.read_csv(input_path_1, header=None) #make the first row in the data file a regular row in the df, and not columns names
+    vectors_2 = pd.read_csv(input_path_2, header=None) 
+    make_df_for_merge(vectors_1)
+    make_df_for_merge(vectors_2)
+    vectors = pd.merge(vectors_1, vectors_2 ,on="index", sort=True)
+    vectors = vectors.set_index("index")
+    N, d = vectors.shape
+    col_names = generate_col_names_list(d)
+    vectors.columns = col_names
+
+    print("vectors:")
+    print(vectors)
     # print("vectors[0]:")
     # print(vectors[0])
 
@@ -43,52 +49,38 @@ def main(args):
     print("vectors indices to list")
     print(vectors.index.to_list())
 
+    print("first row by index:")
+    print(vectors.iloc[0])
 
-def files_to_vectors(path_1, path_2):
-    vectors_1 = pd.read_csv(path_1, header=None) #make the first row in the data file a regular row in the df, and not columns names
-    vectors_2 = pd.read_csv(path_2, header=None) 
-    print("vectors1:")
-    print(vectors_1)
-    print("vectors2:")
-    print(vectors_2)
+    print("point_0 by index- index 0:")
+    print(vectors.loc[0.0,'point_0'])
 
+    print("first row by index- index 0:")
+    print(vectors.loc[0.0])
 
+    vector = vectors.loc[0.0].to_list()
+    print('vector is:')
+    print(vector)
 
-
-    dim_1 = vectors_1.shape[1] - 1 # minus 1 because the first column is the index
-    dim_2 = vectors_1.shape[1] - 1 # minus 1 because the first column is the index
-    print("dim1 is: ", dim_1)
-    print("dim2 is: ", dim_2)
-
-    col_names_1 = ["index"] + generate_col_names_list(dim_1)
-    print(col_names_1)
-
-    col_names_2 = ["index"] + generate_col_names_list(dim_2, start=dim_1)
-    print(col_names_2)
-
-    vectors_1.columns = col_names_1
-    vectors_2.columns = col_names_2
-
-    print("vectors1:")
-    print(vectors_1)
-    print("vectors2:")
-    print(vectors_2)
-
-    vectors = pd.merge(vectors_1, vectors_2,on="index")
-
-    print("merged:")
+    vector[0] = 1.1111
+    ("changed vector:")
+    print(vector)
+    ("vectors DataFrame:")
     print(vectors)
 
-    vectors = vectors.set_index("index")
+    vectors_mat = vectors.to_numpy
+    print("vectors numpy matrix:")
+    print(vectors_mat)
+    #print("vectors numpy matrix shape:")
+    #print(vectors_mat.shape)
 
-    vectors.sort_index(inplace=True)
+    vectors_list = vectors.values.tolist()
+    print("vectors list:")
+    print(vectors_list)  
 
-    print("sorted:")
-    print(vectors)
-
-    return vectors
-
-
+    first_col_list = vectors.iloc[:, 0].to_list()
+    print("first_col_list:")
+    print(first_col_list)
 
 
 def generate_col_names_list(col_num, start=0):
@@ -98,6 +90,11 @@ def generate_col_names_list(col_num, start=0):
         print(names_list)
     return names_list
 
+
+def make_df_for_merge(df):
+    col_num = df.shape[1] - 1 # columns number, minus 1 because the first column is the index
+    col_names = ["index"] + generate_col_names_list(col_num)   
+    df.columns = col_names
 
 
 
