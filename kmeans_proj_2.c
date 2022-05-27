@@ -43,34 +43,26 @@ static PyObject *fit(PyObject *self, PyObject *args) {
     PyObject *item;
     PyObject *list;
 
-    printf("running c code!\n");
-
     /* Parse arguments */
     if(!PyArg_ParseTuple(args, "OOiiiid", &vectors_obj, &centroids_obj, &N, &d, &k, &max_iter, &eps)) {
         return NULL;
     }
 
-    printf("got the arguments\n");
-
 	/*allocating space for vectors and centroids */
 
 	vectors = (double*)calloc(N*d, sizeof(double));
 	vectors_array = (double**)calloc(N, sizeof(double *));
-	
+
 	centroids = (double*)calloc(k*d, sizeof(double));
 	centroids_array = (double**)calloc(k, sizeof(double *));
 
 	if(vectors == NULL || vectors_array == NULL || centroids == NULL || centroids_array == NULL){
-		free(vectors_obj);
-		free(centroids_obj);
     	free(vectors);
     	free(vectors_array);
 		free(centroids);
 	    free(centroids_array);
     	other_error();
     }
-
-	printf("allocation succeeded\n");
 
 	/* create matrices for vectors and centroids */
 	for (i = 0 ; i < N ; i++) {
@@ -80,26 +72,19 @@ static PyObject *fit(PyObject *self, PyObject *args) {
 	for (i = 0 ; i < k ; i++) {
 	    centroids_array[i] = centroids + i*d;
 	}
-	
-	printf("matrix succeeded\n");
-
 
     /* python obj to double** */
-
-       printf("Translating vectors\n");
 
        for (i = 0; i < N; i++) {
     	   list = PyList_GetItem(vectors_obj, i);
     	   	for (j = 0; j < d; j++) {
     	   		item = PyList_GetItem(list, j);
-    	   		if (!PyFloat_Check(item)){		   
+    	   		if (!PyFloat_Check(item)){
     	   			vectors_array[i][j] = 0.0; /* or error? */
 				   }
     	   		vectors_array[i][j] = PyFloat_AsDouble(item);
        }
     }
-
-       printf("translating centroids la la la\n");
 
        for (i = 0; i < k; i++) {
 		    list = PyList_GetItem(centroids_obj, i);
@@ -107,17 +92,12 @@ static PyObject *fit(PyObject *self, PyObject *args) {
             	item = PyList_GetItem(list, j);
             	if (!PyFloat_Check(item)){
 					centroids_array[i][j] = 0.0; /* or error? */
-				}  	
+				}
             	centroids_array[i][j] = PyFloat_AsDouble(item);
         	}
      	}
 
-    printf("calling k-means\n");
-
     error = K_means(vectors_array, centroids_array, N, d, k, max_iter, eps);
-
-    printf("done with kmeans\n");
-    printf("error is %d\n", error);
 
     free(vectors);
     free(vectors_array);
@@ -135,10 +115,8 @@ static PyObject *fit(PyObject *self, PyObject *args) {
     	free(list);
 		free(centroids);
     	free(centroids_array);
-        other_error(); 
+        other_error();
     }
-
-    printf("created empty list of size k\n");
 
     for(i = 0; i < k; i++) {
         item = PyList_New(d);
@@ -154,16 +132,14 @@ static PyObject *fit(PyObject *self, PyObject *args) {
         PyList_SET_ITEM(list, i, item);
     }
 
-    if(error == 1){
-		free (list);
-    	free(centroids); 
-        free(centroids_array);
-        other_error(); 
-    }
-
-    printf("exiting c script\n");
     free(centroids);
     free(centroids_array);
+
+    if(error == 1){
+    	free(item);
+		free (list);
+        other_error();
+    }
 
     return list;
 }
@@ -184,7 +160,7 @@ static int K_means(double **vectors_array, double **centroids_array, int N, int 
 	double **clusters;
 	double ***clusters_array;
 	int *clusters_sizes;
-    
+
     /*allocate space for clusters. each cluster is an array of pointers
     (that is, clusters_array in the [i][j] contains pointer to a vector)*/
     clusters = (double **)calloc(K, N*(sizeof(double *)));
