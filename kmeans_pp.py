@@ -42,8 +42,10 @@ def main(args):
     centroids_lst = centroids.tolist()
     vectors_lst = vectors.values.tolist()
 
-    result_centroids = mykmeanssp.fit( vectors_lst, centroids_lst, N, d, k, max_iter, eps)
-    
+    result_centroids = mykmeanssp.fit(vectors_lst, centroids_lst, N, d, k, max_iter, eps)
+    if result_centroids == 1: # the c function ran into erroe thus returned 1
+        general_error()
+
     # print the results: the chosen k indices in algorithm 1, and the k final centoris
     print(*res_indices_int, sep = ", ")
     for i in range(k):
