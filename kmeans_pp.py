@@ -32,22 +32,24 @@ def main(args):
     vectors = pd.merge(vectors_1, vectors_2 ,on=0, sort=True)
     vectors = vectors.set_index(0)
     N, d = vectors.shape
-    
+
+    vectors_mat = vectors.to_numpy()
     centroids = np.zeros((k, d))
 
-    res_indices = k_means_pp(vectors, centroids, k)
-    res_indices_int = [int(i) for i in res_indices]
+    indices_lst = vectors.index.to_list()  
+    indices_lst = [int(i) for i in indices_lst]
+
+    res_indices = k_means_pp(vectors_mat, indices_lst, centroids, k)
+    
 
     #convert centroids and vectors to lists, for the c module
     centroids_lst = centroids.tolist()
-    vectors_lst = vectors.values.tolist()
+    vectors_lst = vectors_mat.tolist()
 
     result_centroids = mykmeanssp.fit(vectors_lst, centroids_lst, N, d, k, max_iter, eps)
-    if result_centroids == 1: # the c function ran into erroe thus returned 1
-        general_error()
 
     # print the results: the chosen k indices in algorithm 1, and the k final centoris
-    print(*res_indices_int, sep = ", ")
+    print(*res_indices, sep = ", ")
     for i in range(k):
         print(','.join("%0.4f" % x for x in result_centroids[i]))
 
@@ -60,17 +62,14 @@ def general_error():
     print("An Error Has Occurred")
     exit(1)
 
-
-
-def k_means_pp(vectors, centroids, k):
-    # vectors - a pandas DataFrame N x d, of N vectors, each one d coordinates. from the input files
+def k_means_pp(vectors, indices, centroids, k):
+    # vectors - a numpy matrix N x d, of N vectors, each one d coordinates. from the input files
     # centroids - a numpy matrix k x d, initialized with zeros, to store the k centroids
     # the function initalize k centroids, out of the N vectors, according to the kmeans++ algotithm
     # the function returns a list of indices of the chosen vectors
 
     N, d = vectors.shape
     i = 0
-    indices = vectors.index.to_list()  
 
     # initialize k-size lists to store the chosen vectors indices
     chosen_indices = [None] * k
@@ -84,7 +83,7 @@ def k_means_pp(vectors, centroids, k):
 
     while i < k-1:
         for j in range(N):
-            vector = vectors.iloc[j].to_list()
+            vector = vectors[j]
             D_vector = calculate_D(vector, centroids, i)
             D_lst[j] = D_vector
 
@@ -102,19 +101,14 @@ def k_means_pp(vectors, centroids, k):
 
 
 def calculate_D(vector, centroids, i):
-    min_value = -1
-    for j in range(i + 1):
-        norm = cal_norm_squared(vector, centroids[j])
-        if (min_value == -1 or norm < min_value):
-            min_value = norm
+    min_value = min([cal_norm_squared(vector, centroids[j]) for j in range(i+1)])
     return min_value
 
 
 def cal_norm_squared(v1, v2):
-    args_sum = 0
-    for i in range(len(v1)):
-        args_sum += ((v1[i] - v2[i]) ** 2)
-    return args_sum
+    v = np.subtract(v1, v2)
+    res = np.inner(v, v)
+    return res
 
 def select_random_vector(vectors, centroids, indices, chosen_indices, i, probablity = None):
     # select centroid randomly from the N vectors
@@ -122,7 +116,7 @@ def select_random_vector(vectors, centroids, indices, chosen_indices, i, probabl
         rand_index = np.random.choice(indices)
     if probablity != None: # vector in index [i] has probablity[i] probablity to be chosen
         rand_index = np.random.choice(indices, p = probablity)
-    centroids[i] = vectors.loc[rand_index].to_list() 
+    centroids[i] = np.copy(vectors[rand_index])
     chosen_indices[i] = rand_index
 
 if __name__ == "__main__":
